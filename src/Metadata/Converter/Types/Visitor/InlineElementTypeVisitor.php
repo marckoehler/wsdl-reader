@@ -29,12 +29,12 @@ final class InlineElementTypeVisitor
         return new TypeCollection(
             ...flat_map(
                 $xsdType->getElements(),
-                fn (ElementItem $element): TypeCollection => $this->detectInlineTypes($element, $context)
+                fn (ElementItem $element): TypeCollection => $this->detectInlineTypes($element, $context, $xsdType)
             )
         );
     }
 
-    private function detectInlineTypes(ElementItem $element, TypesConverterContext $context): TypeCollection
+    private function detectInlineTypes(ElementItem $element, TypesConverterContext $context, ComplexType $parent): TypeCollection
     {
         $elementVisitor = new ElementVisitor();
 
@@ -43,7 +43,7 @@ final class InlineElementTypeVisitor
             return new TypeCollection(
                 ...flat_map(
                     $element->getElements(),
-                    fn (ElementItem $child): TypeCollection => $this->detectInlineTypes($child, $context)
+                    fn (ElementItem $child): TypeCollection => $this->detectInlineTypes($child, $context, $parent)
                 )
             );
         }
@@ -61,6 +61,9 @@ final class InlineElementTypeVisitor
         if ($element->getType()?->getName()) {
             return new TypeCollection();
         }
+
+        // Prefix the name with the parent name to avoid name conflicts with other (inline) elements of same name.
+        $element->setName($parent->getName() . (ucfirst($element->getName())));
 
         return $elementVisitor($element, $context);
     }
